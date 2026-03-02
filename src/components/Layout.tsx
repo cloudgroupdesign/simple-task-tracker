@@ -1,21 +1,48 @@
 import { useState } from 'react'
 import { useAuth } from '../store/AuthContext'
+import type { Category } from '../types'
 
-type Tab = 'tasks' | 'archive'
+type Tab = 'tasks' | 'archive' | 'categories'
 
 interface Props {
   activeTab: Tab
   onTabChange: (tab: Tab) => void
-  onOpenInbox: () => void
   onOpenAdmin?: () => void
-  onOpenCapture: () => void
   onOpenSettings: () => void
+  categories: Category[]
+  selectedCategoryId: string | null
+  onSelectCategory: (id: string | null) => void
+  onCreateCategory: () => void
+  onDeleteCategory: (id: string) => void
   children: React.ReactNode
 }
 
-export function Layout({ activeTab, onTabChange, onOpenInbox, onOpenAdmin, onOpenCapture, onOpenSettings, children }: Props) {
+export function Layout({
+  activeTab,
+  onTabChange,
+  onOpenAdmin,
+  onOpenSettings,
+  categories,
+  selectedCategoryId,
+  onSelectCategory,
+  children,
+  onCreateCategory,
+  onDeleteCategory,
+}: Props) {
   const { user, isAdmin, signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [categoriesExpanded, setCategoriesExpanded] = useState(true)
+  const [deleteCatConfirmId, setDeleteCatConfirmId] = useState<string | null>(null)
+
+  const headerTitle = (() => {
+    if (activeTab === 'archive') return 'Архів'
+    if (activeTab === 'categories') return 'Категорії'
+    if (selectedCategoryId) {
+      const cat = categories.find((c) => c.id === selectedCategoryId)
+      return cat?.name ?? 'Завдання'
+    }
+    return 'Завдання'
+  })()
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -37,11 +64,12 @@ export function Layout({ activeTab, onTabChange, onOpenInbox, onOpenAdmin, onOpe
           <h2 className="text-lg font-bold text-gray-800">Simple Tracker</h2>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {/* Завдання */}
           <button
-            onClick={() => { onTabChange('tasks'); setSidebarOpen(false) }}
+            onClick={() => { onSelectCategory(null); onTabChange('tasks'); setSidebarOpen(false) }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-              activeTab === 'tasks'
+              activeTab === 'tasks' && !selectedCategoryId
                 ? 'bg-blue-50 text-blue-700'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
@@ -52,6 +80,91 @@ export function Layout({ activeTab, onTabChange, onOpenInbox, onOpenAdmin, onOpe
             Завдання
           </button>
 
+          {/* Категорії — розкривна секція */}
+          <div>
+            <div className={`flex items-center rounded-lg text-sm font-medium transition ${
+              activeTab === 'categories' || (activeTab === 'tasks' && selectedCategoryId)
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}>
+              <button
+                onClick={() => { onTabChange('categories'); setSidebarOpen(false) }}
+                className="flex-1 flex items-center gap-3 px-3 py-2.5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Категорії
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setCategoriesExpanded(!categoriesExpanded) }}
+                className="p-2 rounded-lg hover:bg-black/5 transition"
+              >
+                <svg className={`w-4 h-4 transition-transform ${categoriesExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+
+            {categoriesExpanded && (
+              <div className="ml-4 mt-1 space-y-0.5">
+                {categories.map((cat) => (
+                  <div key={cat.id} className="flex items-center group">
+                    {deleteCatConfirmId === cat.id ? (
+                      <div className="flex items-center gap-1 w-full px-3 py-1.5">
+                        <span className="text-xs text-gray-500 truncate flex-1">Видалити?</span>
+                        <button
+                          onClick={() => { onDeleteCategory(cat.id); setDeleteCatConfirmId(null) }}
+                          className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-600 hover:bg-red-200 transition"
+                        >
+                          Так
+                        </button>
+                        <button
+                          onClick={() => setDeleteCatConfirmId(null)}
+                          className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+                        >
+                          Ні
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => { onSelectCategory(cat.id); setSidebarOpen(false) }}
+                          className={`flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition ${
+                            selectedCategoryId === cat.id
+                              ? 'bg-blue-50 text-blue-700 font-medium'
+                              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />
+                          <span className="truncate">{cat.name}</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteCatConfirmId(cat.id) }}
+                          className="p-1 rounded opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={() => { onCreateCategory(); setSidebarOpen(false) }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Нова категорія
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Архів */}
           <button
             onClick={() => { onTabChange('archive'); setSidebarOpen(false) }}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
@@ -70,20 +183,6 @@ export function Layout({ activeTab, onTabChange, onOpenInbox, onOpenAdmin, onOpe
         {/* Sidebar bottom: user info */}
         <div className="p-3 border-t border-gray-100 space-y-2">
           <p className="text-xs text-gray-400 truncate px-3">{user?.email}</p>
-          <div className="flex gap-1">
-            <button
-              onClick={onOpenInbox}
-              className="flex-1 px-2 py-1.5 text-xs rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
-            >
-              Inbox
-            </button>
-            <button
-              onClick={onOpenCapture}
-              className="flex-1 px-2 py-1.5 text-xs rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition"
-            >
-              + Захопити
-            </button>
-          </div>
           <button
             onClick={() => { onOpenSettings(); setSidebarOpen(false) }}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
@@ -113,9 +212,7 @@ export function Layout({ activeTab, onTabChange, onOpenInbox, onOpenAdmin, onOpe
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <h1 className="text-lg font-bold">
-                {activeTab === 'tasks' ? 'Завдання' : 'Архів'}
-              </h1>
+              <h1 className="text-lg font-bold">{headerTitle}</h1>
             </div>
 
             <div className="flex items-center gap-1">

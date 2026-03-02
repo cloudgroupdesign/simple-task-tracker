@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import AdminLayout from '../components/AdminLayout'
 
 const SUPER_ADMIN_EMAIL = 'hello.cloudgroup@gmail.com'
 
@@ -18,7 +19,7 @@ interface Props {
   onBack: () => void
 }
 
-export function Admin({ onBack }: Props) {
+export default function Admin({ onBack }: Props) {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -119,28 +120,7 @@ export function Admin({ onBack }: Props) {
   const isSuperAdmin = (email: string) => email === SUPER_ADMIN_EMAIL
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-lg hover:bg-gray-100 transition"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 3.6 4 8 4s8-2 8-4V7" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12c0 2 3.6 4 8 4s8-2 8-4" />
-            <ellipse cx="12" cy="7" rx="8" ry="4" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
-          </svg>
-          <h1 className="text-lg font-bold">Адмін-панель</h1>
-          <span className="text-sm text-gray-400">({users.length})</span>
-        </div>
-      </div>
-
+    <AdminLayout onBack={onBack}>
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Add user form */}
         <form
@@ -200,6 +180,11 @@ export function Admin({ onBack }: Props) {
         {/* Empty */}
         {!loading && !error && users.length === 0 && (
           <p className="text-gray-400 text-center py-8">Немає користувачів</p>
+        )}
+
+        {/* User count */}
+        {users.length > 0 && (
+          <p className="text-sm text-gray-400">Всього: {users.length}</p>
         )}
 
         {/* User list */}
@@ -297,6 +282,6 @@ export function Admin({ onBack }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </AdminLayout>
   )
 }

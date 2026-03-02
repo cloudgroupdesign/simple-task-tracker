@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import { AuthProvider, useAuth } from './store/AuthContext'
 import { StoreContext } from './store/StoreContext'
 import { useStore } from './store/useStore'
@@ -8,14 +8,17 @@ import { ReflectionStep2 } from './screens/ReflectionStep2'
 import { Briefing } from './screens/Briefing'
 import { Tracker } from './screens/Tracker'
 import { Inbox } from './screens/Inbox'
-import { Admin } from './screens/Admin'
 import { Archive } from './screens/Archive'
+import { Categories } from './screens/Categories'
 import { Layout } from './components/Layout'
 import { QuickCapture } from './components/QuickCapture'
 import { SettingsModal } from './components/SettingsModal'
+import { CategoryCreateModal } from './components/CategoryCreateModal'
 import { IdleLock } from './components/IdleLock'
 import { getToday, getTomorrow, isEvening, isMorning } from './utils/date'
 import type { Category } from './types'
+
+const Admin = lazy(() => import('./screens/Admin'))
 
 type Screen =
   | 'reflection-1'
@@ -25,6 +28,7 @@ type Screen =
   | 'inbox'
   | 'admin'
   | 'archive'
+  | 'categories'
 
 function getInitialScreen(
   store: ReturnType<typeof useStore>,
@@ -55,6 +59,8 @@ function AppContent() {
   const [reflectionCategory, setReflectionCategory] = useState<Category | null>(null)
   const [showGlobalCapture, setShowGlobalCapture] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showCreateCategory, setShowCreateCategory] = useState(false)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
   // Set initial screen once data is loaded
   useEffect(() => {
@@ -96,6 +102,8 @@ function AppContent() {
     )
   }
 
+  const layoutScreens = screen === 'tracker' || screen === 'archive' || screen === 'categories'
+
   return (
     <StoreContext.Provider value={store}>
       <div className="min-h-screen bg-gray-50 text-gray-900 antialiased">
@@ -119,22 +127,47 @@ function AppContent() {
           <Briefing onContinue={() => setScreen('tracker')} />
         )}
 
-        {(screen === 'tracker' || screen === 'archive') && (
+        {layoutScreens && (
           <Layout
-            activeTab={screen === 'archive' ? 'archive' : 'tasks'}
-            onTabChange={(tab) => setScreen(tab === 'archive' ? 'archive' : 'tracker')}
-            onOpenInbox={() => setScreen('inbox')}
+            activeTab={screen === 'archive' ? 'archive' : screen === 'categories' ? 'categories' : 'tasks'}
+            onTabChange={(tab) => {
+              if (tab === 'archive') setScreen('archive')
+              else if (tab === 'categories') setScreen('categories')
+              else { setScreen('tracker'); setSelectedCategoryId(null) }
+            }}
             onOpenAdmin={() => setScreen('admin')}
-            onOpenCapture={() => setShowGlobalCapture(true)}
             onOpenSettings={() => setShowSettings(true)}
+            categories={store.state.categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={(id) => {
+              setSelectedCategoryId(id)
+              setScreen('tracker')
+            }}
+            onCreateCategory={() => setShowCreateCategory(true)}
+            onDeleteCategory={store.deleteCategory}
           >
-            {screen === 'tracker' && <Tracker />}
+            {screen === 'tracker' && <Tracker selectedCategoryId={selectedCategoryId} />}
             {screen === 'archive' && <Archive />}
+            {screen === 'categories' && (
+              <Categories
+                onSelectCategory={(id) => {
+                  setSelectedCategoryId(id)
+                  setScreen('tracker')
+                }}
+                onCreateCategory={() => setShowCreateCategory(true)}
+              />
+            )}
           </Layout>
         )}
 
         {screen === 'admin' && (
-          <Admin onBack={() => setScreen('tracker')} />
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+              <p className="text-gray-400">Завантаження...</p>
+            </div>
+          }>
+            <Admin onBack={() => setScreen('tracker')} />
+          </Suspense>
         )}
 
         {screen === 'inbox' && (
@@ -147,6 +180,10 @@ function AppContent() {
 
         {showSettings && (
           <SettingsModal onClose={() => setShowSettings(false)} />
+        )}
+
+        {showCreateCategory && (
+          <CategoryCreateModal onClose={() => setShowCreateCategory(false)} />
         )}
 
         <IdleLock />

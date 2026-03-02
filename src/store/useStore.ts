@@ -138,8 +138,27 @@ export function useStore() {
 
       if (!mountedRef.current) return
 
+      let categories = (catRes.data as CategoryRow[] ?? []).map(rowToCategory)
+
+      // Create default categories for new users
+      if (categories.length === 0) {
+        const workId = crypto.randomUUID()
+        const restId = crypto.randomUUID()
+        const defaultCats: Category[] = [
+          { id: workId, name: 'Робота', baseType: 'work' },
+          { id: restId, name: 'Відпочинок', baseType: 'rest' },
+        ]
+        categories = defaultCats
+        fireAndForget(
+          supabase.from('categories').insert([
+            { id: workId, user_id: user!.id, name: 'Робота', base_type: 'work' },
+            { id: restId, user_id: user!.id, name: 'Відпочинок', base_type: 'rest' },
+          ]),
+        )
+      }
+
       setState({
-        categories: (catRes.data as CategoryRow[] ?? []).map(rowToCategory),
+        categories,
         tasks: (taskRes.data as TaskRow[] ?? []).map(rowToTask),
         days: (dayRes.data as DayRow[] ?? []).map(rowToDay),
         activeMode: 'work',
@@ -330,17 +349,35 @@ export function useStore() {
     [],
   )
 
+  const updateTask = useCallback(
+    (taskId: string, updates: { title?: string; categoryId?: string }) => {
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)),
+      }))
+      const dbUpdates: Record<string, unknown> = {}
+      if (updates.title !== undefined) dbUpdates.title = updates.title
+      if (updates.categoryId !== undefined) dbUpdates.category_id = updates.categoryId || null
+      fireAndForget(supabase.from('tasks').update(dbUpdates).eq('id', taskId))
+    },
+    [],
+  )
+
   // Derived data — memoized to avoid recalculation on unrelated state changes
   const inboxTasks = useMemo(() => state.tasks.filter((t) => t.isInbox && !t.isArchived), [state.tasks])
   const archivedTasks = useMemo(() => state.tasks.filter((t) => t.isArchived), [state.tasks])
 
   const getTasksForDate = useCallback(
-    (date: string, baseType?: BaseType): Task[] => {
+    (date: string, filter?: { baseType?: BaseType; categoryId?: string }): Task[] => {
       return state.tasks.filter((t) => {
         if (t.isArchived || t.isInbox || t.date !== date) return false
-        if (!baseType) return true
-        const cat = state.categories.find((c) => c.id === t.categoryId)
-        return cat?.baseType === baseType
+        if (!filter) return true
+        if (filter.categoryId) return t.categoryId === filter.categoryId
+        if (filter.baseType) {
+          const cat = state.categories.find((c) => c.id === t.categoryId)
+          return cat?.baseType === filter.baseType
+        }
+        return true
       })
     },
     [state.tasks, state.categories],
@@ -370,12 +407,21 @@ export function useStore() {
     [user],
   )
 
+  const deleteCategory = useCallback(
+    (categoryId: string) => {
+      setState((prev) => ({ ...prev, categories: prev.categories.filter((c) => c.id !== categoryId) }))
+      fireAndForget(supabase.from('categories').delete().eq('id', categoryId))
+    },
+    [],
+  )
+
   return {
     state,
     loaded,
     settings,
     updateSettings,
     addCategory,
+    deleteCategory,
     setDay,
     markBriefingSeen,
     getDay,
@@ -384,6 +430,7 @@ export function useStore() {
     addInboxTask,
     toggleTask,
     deleteTask,
+    updateTask,
     restoreTask,
     permanentDeleteTask,
     assignInboxTask,

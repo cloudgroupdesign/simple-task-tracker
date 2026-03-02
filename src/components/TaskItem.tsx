@@ -8,9 +8,10 @@ interface Props {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onDeleteConfirm: (id: string | null) => void
+  onEdit?: (task: Task) => void
 }
 
-export const TaskItem = memo(function TaskItem({ task, completed, deleteConfirmId, onToggle, onDelete, onDeleteConfirm }: Props) {
+export const TaskItem = memo(function TaskItem({ task, completed, deleteConfirmId, onToggle, onDelete, onDeleteConfirm, onEdit }: Props) {
   const isConfirming = deleteConfirmId === task.id
 
   return (
@@ -42,6 +43,19 @@ export const TaskItem = memo(function TaskItem({ task, completed, deleteConfirmI
       >
         {task.title}
       </span>
+
+      {/* Edit button */}
+      {onEdit && !isConfirming && (
+        <button
+          onClick={() => onEdit(task)}
+          className="p-1 rounded text-gray-300 hover:text-blue-500 transition flex-shrink-0"
+          title="Редагувати"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+      )}
 
       {/* Delete / Confirm */}
       {isConfirming ? (
