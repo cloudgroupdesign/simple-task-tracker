@@ -10,7 +10,7 @@ import { Tracker } from './screens/Tracker'
 import { Inbox } from './screens/Inbox'
 import { Archive } from './screens/Archive'
 import { Categories } from './screens/Categories'
-import { Finance } from './screens/Finance'
+// Finance lazy-loaded — only fetched when user switches to it
 import { Layout } from './components/Layout'
 import { QuickCapture } from './components/QuickCapture'
 import { SettingsModal } from './components/SettingsModal'
@@ -20,6 +20,7 @@ import { getToday, getTomorrow, isEvening, isMorning } from './utils/date'
 import type { Category, AppModule } from './types'
 
 const Admin = lazy(() => import('./screens/Admin'))
+const Finance = lazy(() => import('./screens/Finance'))
 
 type Screen =
   | 'reflection-1'
@@ -165,7 +166,11 @@ function AppContent() {
                 )}
               </>
             )}
-            {activeApp === 'finance' && <Finance />}
+            {activeApp === 'finance' && (
+              <Suspense fallback={<div className="flex items-center justify-center py-20"><p className="text-gray-400">Завантаження...</p></div>}>
+                <Finance />
+              </Suspense>
+            )}
           </Layout>
         )}
 
