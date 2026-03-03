@@ -10,13 +10,14 @@ import { Tracker } from './screens/Tracker'
 import { Inbox } from './screens/Inbox'
 import { Archive } from './screens/Archive'
 import { Categories } from './screens/Categories'
+import { Finance } from './screens/Finance'
 import { Layout } from './components/Layout'
 import { QuickCapture } from './components/QuickCapture'
 import { SettingsModal } from './components/SettingsModal'
 import { CategoryCreateModal } from './components/CategoryCreateModal'
 import { IdleLock } from './components/IdleLock'
 import { getToday, getTomorrow, isEvening, isMorning } from './utils/date'
-import type { Category } from './types'
+import type { Category, AppModule } from './types'
 
 const Admin = lazy(() => import('./screens/Admin'))
 
@@ -61,6 +62,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false)
   const [showCreateCategory, setShowCreateCategory] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [activeApp, setActiveApp] = useState<AppModule>('tracker')
 
   // Set initial screen once data is loaded
   useEffect(() => {
@@ -102,7 +104,7 @@ function AppContent() {
     )
   }
 
-  const layoutScreens = screen === 'tracker' || screen === 'archive' || screen === 'categories'
+  const layoutScreens = activeApp !== 'tracker' || screen === 'tracker' || screen === 'archive' || screen === 'categories'
 
   return (
     <StoreContext.Provider value={store}>
@@ -137,6 +139,8 @@ function AppContent() {
             }}
             onOpenAdmin={() => setScreen('admin')}
             onOpenSettings={() => setShowSettings(true)}
+            activeApp={activeApp}
+            onSwitchApp={(app) => { setActiveApp(app); if (app === 'tracker') setScreen('tracker') }}
             categories={store.state.categories}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={(id) => {
@@ -146,17 +150,22 @@ function AppContent() {
             onCreateCategory={() => setShowCreateCategory(true)}
             onDeleteCategory={store.deleteCategory}
           >
-            {screen === 'tracker' && <Tracker selectedCategoryId={selectedCategoryId} />}
-            {screen === 'archive' && <Archive />}
-            {screen === 'categories' && (
-              <Categories
-                onSelectCategory={(id) => {
-                  setSelectedCategoryId(id)
-                  setScreen('tracker')
-                }}
-                onCreateCategory={() => setShowCreateCategory(true)}
-              />
+            {activeApp === 'tracker' && (
+              <>
+                {screen === 'tracker' && <Tracker selectedCategoryId={selectedCategoryId} />}
+                {screen === 'archive' && <Archive />}
+                {screen === 'categories' && (
+                  <Categories
+                    onSelectCategory={(id) => {
+                      setSelectedCategoryId(id)
+                      setScreen('tracker')
+                    }}
+                    onCreateCategory={() => setShowCreateCategory(true)}
+                  />
+                )}
+              </>
             )}
+            {activeApp === 'finance' && <Finance />}
           </Layout>
         )}
 

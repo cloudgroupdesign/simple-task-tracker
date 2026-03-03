@@ -1,4 +1,5 @@
 export type BaseType = 'work' | 'rest'
+export type AppModule = 'tracker' | 'finance'
 
 export interface Category {
   id: string
