@@ -105,7 +105,9 @@ function AppContent() {
     )
   }
 
-  const layoutScreens = activeApp !== 'tracker' || screen === 'tracker' || screen === 'archive' || screen === 'categories'
+  // Admin is always a separate full-screen, regardless of active app
+  const isFullScreen = screen === 'admin' || screen === 'inbox' || screen === 'reflection-1' || screen === 'reflection-2' || screen === 'briefing'
+  const layoutScreens = !isFullScreen && (activeApp !== 'tracker' || screen === 'tracker' || screen === 'archive' || screen === 'categories')
 
   return (
     <StoreContext.Provider value={store}>
