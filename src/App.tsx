@@ -16,6 +16,7 @@ import { QuickCapture } from './components/QuickCapture'
 import { SettingsModal } from './components/SettingsModal'
 import { CategoryCreateModal } from './components/CategoryCreateModal'
 import { IdleLock } from './components/IdleLock'
+import { VoiceTaskModal } from './components/VoiceTaskModal'
 import { getToday, getTomorrow, isEvening, isMorning } from './utils/date'
 import type { Category, AppModule } from './types'
 
@@ -64,6 +65,7 @@ function AppContent() {
   const [showCreateCategory, setShowCreateCategory] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [activeApp, setActiveApp] = useState<AppModule>('tracker')
+  const [showVoiceTask, setShowVoiceTask] = useState(false)
 
   // Set initial screen once data is loaded
   useEffect(() => {
@@ -155,7 +157,7 @@ function AppContent() {
           >
             {activeApp === 'tracker' && (
               <>
-                {screen === 'tracker' && <Tracker selectedCategoryId={selectedCategoryId} />}
+                {screen === 'tracker' && <Tracker selectedCategoryId={selectedCategoryId} onOpenVoice={() => setShowVoiceTask(true)} />}
                 {screen === 'archive' && <Archive />}
                 {screen === 'categories' && (
                   <Categories
@@ -200,6 +202,10 @@ function AppContent() {
 
         {showCreateCategory && (
           <CategoryCreateModal onClose={() => setShowCreateCategory(false)} />
+        )}
+
+        {showVoiceTask && (
+          <VoiceTaskModal onClose={() => setShowVoiceTask(false)} />
         )}
 
         <IdleLock />

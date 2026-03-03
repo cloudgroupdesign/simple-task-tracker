@@ -7,9 +7,10 @@ import type { Task } from '../types'
 
 interface Props {
   selectedCategoryId?: string | null
+  onOpenVoice: () => void
 }
 
-export function Tracker({ selectedCategoryId }: Props) {
+export function Tracker({ selectedCategoryId, onOpenVoice }: Props) {
   const { state, getTasksForDate, toggleTask, deleteTask, addTask } = useAppStore()
   const today = getToday()
   const [showForm, setShowForm] = useState(false)
@@ -73,15 +74,26 @@ export function Tracker({ selectedCategoryId }: Props) {
       <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Add task button / form */}
         {!showForm ? (
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-full flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 transition"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Додати завдання
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex-1 flex items-center gap-2 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Додати завдання
+            </button>
+            <button
+              onClick={onOpenVoice}
+              className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-red-400 hover:text-red-500 transition"
+              title="Голосовий запис"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+          </div>
         ) : (
           <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3 shadow-sm">
             <input
